@@ -35,6 +35,11 @@
 (def v* t*)
 (def vd td)
 
+(def c+ t+)
+(def c- t-)
+(def c* t*)
+(def cd td)
+
 (defn foldLeft [zero f items]
 				(if (empty? items)
 								zero
