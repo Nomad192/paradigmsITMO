@@ -1,0 +1,1 @@
+start ..\..\paradigms-2022\clojure\RunClojure.cmd test.clj

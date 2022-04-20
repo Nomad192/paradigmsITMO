@@ -1,0 +1,31 @@
+(defn tensor [f a b]
+				(if (double? a)
+								(f a b)
+								(mapv (partial tensor f) a b)))
+
+(defn t+ [a b] (tensor + a b))
+(defn t- [a b] (tensor - a b))
+(defn t* [a b] (tensor * a b))
+(defn td [a b] (tensor / a b))
+
+(def v+ t+)
+(def v- t-)
+(def v* t*)
+(def vd td)
+(defn v*s [a b] (mapv (partial * b) a))
+(defn scalar [a b] (apply + (mapv * a b)))
+(defn vect [a b] [(- (* (nth a 1) (nth b 2)) (* (nth a 2) (nth b 1))) 
+																	 (- (* (nth a 2) (nth b 0)) (* (nth a 0) (nth b 2)))
+																		(- (* (nth a 0) (nth b 1)) (* (nth a 1) (nth b 0)))])
+(def m+ t+)
+(def m- t-)
+(def m* t*)
+(def md td)
+(defn m*s [a b] (mapv v*s a (iterate identity b)))
+(defn m*v [a b] (mapv (partial scalar b) a))
+(defn transpose [a] (apply mapv vector a))
+(defn m*m [a b] (mapv 
+																(partial 
+																				(fn [b a] (mapv (partial scalar a) b)) 
+																				(transpose b))
+ 															a))
