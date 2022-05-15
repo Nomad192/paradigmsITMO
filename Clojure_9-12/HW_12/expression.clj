@@ -32,11 +32,11 @@
 (defn Variable [x]
 	{
 		:diff 	  (fn [this t]
-			(if (= x t) (Constant 1)
+			(if (= (clojure.string/lower-case (str (first x))) t) (Constant 1)
 				(Constant 0)))
 		:toString 		(fn [this] x)
 		:toStringSuffix	(fn [this] x)
-		:evaluate (fn [this args] (get args x))})
+		:evaluate (fn [this args] (get args (clojure.string/lower-case (str (first x)))))})
 
 (defn my-exp [x] (Math/exp x))
 (defn my-ln  [x] (Math/log (Math/abs x)))

@@ -1,0 +1,1 @@
+start ..\..\paradigms-2022\clojure\TestClojure.cmd cljtest.parsing.ParserTest easy Variables
