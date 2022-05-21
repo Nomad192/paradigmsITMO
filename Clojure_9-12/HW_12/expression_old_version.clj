@@ -1,5 +1,3 @@
-(load-file "parser.clj")
-
 (defn pget [obj key]
 	(cond 
 		(contains? obj key) (obj key)
@@ -182,92 +180,19 @@
 			 'softmax 	 Softmax
          	})
 
-(defn parse_old [result]
+(defn parse [result]
       (cond
         (number? result) (Constant result)
         (symbol? result) (Variable (str result))
-        (list? result) (apply (get str-op (first result)) (mapv parse_old (rest result)))
+        (list? result) (apply (get str-op (first result)) (mapv parse (rest result)))
       ))
 
-(defn parseSuffix_old [result]
+(defn parseSuffix [result]
       (cond
         (number? result) (Constant result)
         (symbol? result) (Variable (str result))
-        (list? result) (apply (get str-op (last result)) (mapv parseSuffix_old (drop-last result)))
+        (list? result) (apply (get str-op (last result)) (mapv parseSuffix (drop-last result)))
       ))
 
-(defn parseObject_old       [line] (parse_old       (read-string line)))
-(defn parseObjectSuffix_old [line] (parseSuffix_old (read-string line)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(def *digit (+char "0123456789"))
-(defn sign [s tail] 
-    (if (#{\- \+} s)
-        (cons s tail)
-        tail))
-    
-(def *number 
-    (+map read-string
-          (+str 
-                (+seqf sign 
-                       (+opt (+char "-+")) 
-                       (+seq
-                              (+str (+plus *digit))
-                              (+str (+opt (+seqf list* (+char ".") (+plus *digit))))
-                        )
-))))
-
-(def *space (+char " \t\n\r"))
-(def *ws (+ignore (+star *space)))
-
-(def *all-chars (mapv char (range 32 128)))
-
-(def *letter (+char (apply str (filter #(Character/isLetter %) *all-chars))))
-
-(def *name (+str (+plus (+char "xyzXYZ"))))
-
-(defn *strToChar [input] (apply (partial +seqf (constantly input)) (map #(+char (str %)) (str input))))
-
-(defn *colToParser [col] (apply +or (map #(*strToChar (first %)) col)))
-
-(def *Variable (+seqf Variable *name))
-
-(def *Constant (+seqf Constant *number))
-    
-(defn *op []
-    (+or 
-    	(+seqf (fn [r] (apply (get str-op (first r)) (second r))) 
-	        (+seqn 1
-	            (+char "(")
-	            *ws
-	            (+seq   
-	                (*colToParser str-op) 
-	                *ws
-	                (+plus (+seqn 0 *ws (+or *Constant *Variable (delay (*op)))))
-	            )
-	            *ws
-	            (+char ")")
-	            ))
-    	(+seqn 0 *ws (+or *Constant *Variable) *ws)
-))
-
-(defn *suff_op []
-    (+or 
-    	(+seqf (fn [r] (apply (get str-op (second r)) (first r))) 
-	        (+seqn 1
-	            (+char "(")
-	            *ws
-	            (+seq        
-	                (+plus (+seqn 0 *ws (+or *Constant *Variable (delay (*suff_op)))))
-	                *ws
-	                (*colToParser str-op)
-	            )
-	            *ws
-	            (+char ")")
-	            ))
-    	(+seqn 0 *ws (+or *Constant *Variable) *ws)
-))
-
-(defn parseObject [line] (:value ((+seqn 0 *ws (*suff_op) *ws) line)))
-(defn parseObjectSuffix [line] (:value ((+seqn 0 *ws (*suff_op) *ws) line)))
+(defn parseObject       [line] (parse       (read-string line)))
+(defn parseObjectSuffix [line] (parseSuffix (read-string line)))
