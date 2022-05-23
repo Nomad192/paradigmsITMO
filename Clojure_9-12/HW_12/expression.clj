@@ -12,25 +12,28 @@
 (defn method [key]
 	#(apply pcall % key %&))
 
-(def evaluate 	(method :evaluate))
-(def toString 	(method :toString))
-(def toStringSuffix	(method :toStringSuffix))
-(def diff 		(method :diff	 ))
+(def evaluate 	    (method :evaluate       ))
+(def toString 	    (method :toString       ))
+(def toStringSuffix	(method :toStringSuffix ))
+(def toStringInfix	(method :toStringInfix  ))
+(def diff 		    (method :diff	        ))
 
 (defn d [& items] 
 	(try (apply / items)
 		(catch ArithmeticException _
 			(/ (first items) 0.0))))
 
-(def n (partial - 0))
+(def n (partial - 0)) 
 
 (defn Constant [c] 
 	{
 		:diff 	  		(fn [this t] (Constant 0))
 		:toString 		(fn [this] (str c))
 		:toStringSuffix (fn [this] (str c))
+		:toStringInfix 	(fn [this] (str c))
 		:evaluate 		(fn [this args] c)
 		})
+
 (defn Variable [x]
 	{
 		:diff 	  (fn [this t]
@@ -38,6 +41,7 @@
 				(Constant 0)))
 		:toString 		(fn [this] x)
 		:toStringSuffix	(fn [this] x)
+		:toStringInfix 	(fn [this] x)
 		:evaluate (fn [this args] (get args (clojure.string/lower-case (str (first x)))))})
 
 (defn my-exp [x] (Math/exp x))
@@ -77,7 +81,6 @@
 			})
 
 (declare str-op)
-
 (def ExprPrototype 
 	{
 		:diff (fn [this t] (let [df (:df this)		
@@ -90,18 +93,32 @@
 					"(" 
 					(get op-str (:f this)) 
 					(if (empty? (:items this)) " ") 
-					(mapv (fn [item] (str " " (toString item))) 
-						(:items this)))
+    					(mapv (fn [item] (str " " (toString item))) 
+    						(:items this)))
 				")"))
 		:toStringSuffix (fn [this] 
 			(str 
 				"(" 
 				(apply str 
 					(if (empty? (:items this)) " ") 
-					(mapv (fn [item] (str (toStringSuffix item) " ")) 
-						(:items this)))
+    					(mapv (fn [item] (str (toStringSuffix item) " ")) 
+    						(:items this)))
 				(get op-str (:f this))
 				")"))
+		:toStringInfix (fn [this] 
+			(if (= 1 (count (:items this)))
+				(str (get op-str (:f this)) "(" (toStringInfix (first (:items this))) ")")
+				(str 
+					"(" 
+					(if (empty? (:items this)) " ") 
+					    (str (toStringInfix (first (:items this))) " ")
+					(get op-str (:f this))
+					(apply str 
+						(if (empty? (:items this)) " ") 
+	    					(mapv (fn [item] (str " " (toStringInfix item))) 
+	    					    (rest (:items this))))
+					")")
+				))
 		:evaluate (fn [this args] 
 			(apply (:f this) 
 				(mapv evaluate 
@@ -269,5 +286,44 @@
     	(+seqn 0 *ws (+or *Constant *Variable) *ws)
 ))
 
-(defn parseObject [line] (:value ((+seqn 0 *ws (*suff_op) *ws) line)))
+(defn parseObject 		[line] (:value ((+seqn 0 *ws (*suff_op) *ws) line)))
 (defn parseObjectSuffix [line] (:value ((+seqn 0 *ws (*suff_op) *ws) line)))
+
+(defn *infix_op []
+    (+or                               
+        (+seqf (fn [r] ((get str-op (first r)) (second r))) 
+            (+seq     
+                (*colToParser str-op)
+                *ws
+                (+ignore (+char "("))  
+                *ws
+                (+or *Constant *Variable)
+                *ws
+                (+ignore (+char ")"))
+            ))        
+        (+seqf (fn [r] ((get str-op (second r)) (nth r 0) (nth r 2))) 
+            (+or 
+                (+seqn 1
+                    (+char "(")
+                    *ws
+                    (+seq     
+                    	(+or *Constant *Variable (delay (*infix_op)))
+                        *ws
+                        (*colToParser str-op)
+                        *ws
+                        (+or *Constant *Variable (delay (*infix_op)))
+                    )
+                    *ws
+                    (+char ")"))
+                (+seq     
+                    	(+or *Constant *Variable (delay (*infix_op)))
+                        *ws
+                        (*colToParser str-op)
+                        *ws
+                        (+or *Constant *Variable (delay (*infix_op)))
+                    )))
+        (+or *Constant *Variable)
+    )        
+)
+
+(defn parseObjectInfix [line] (:value ((+seqn 0 *ws (*infix_op) *ws) line)))
