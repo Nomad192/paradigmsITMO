@@ -261,7 +261,7 @@
 	            (+seq   
 	                (*colToParser str-op) 
 	                *ws
-	                (+plus (+seqn 0 *ws (+or *Constant *Variable (delay (*op)))))
+	                (+star (+seqn 0 *ws (+or *Constant *Variable (delay (*op)))))
 	            )
 	            *ws
 	            (+char ")")
@@ -285,6 +285,9 @@
 	            ))
     	(+seqn 0 *ws (+or *Constant *Variable) *ws)
 ))
+
+(defn parseObject 		[line] (:value ((+seqn 0 *ws (*op 		) *ws) line)))
+(defn parseObjectSuffix [line] (:value ((+seqn 0 *ws (*suff_op	) *ws) line)))
 
 (defn parseObject 		[line] (:value ((+seqn 0 *ws (*suff_op) *ws) line)))
 (defn parseObjectSuffix [line] (:value ((+seqn 0 *ws (*suff_op) *ws) line)))
